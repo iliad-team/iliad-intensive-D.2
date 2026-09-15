@@ -166,15 +166,13 @@ ipython.run_line_magic("autoreload", "2")
 #         sys.path.insert(0, "/content/iliad")  # so `import part6_goalmisgen...` resolves
 #     os.chdir("/content/iliad")
 #     from google.colab import output
-#     output.enable_custom_widget_manager()  # for the live plotly training plots (LiveSubplots)
+#     output.enable_custom_widget_manager()  # for the interactive rollout viewers (ipywidgets)
 
 # ! CELL TYPE: code
 # ! FILTERS: []
 # ! TAGS: []
 
 import functools
-import sys
-from pathlib import Path
 from typing import Callable
 
 import matplotlib.pyplot as plt
@@ -182,30 +180,14 @@ import numpy as np
 import torch as t
 from jaxtyping import Float, Int
 from torch import Tensor
-from tqdm import tqdm
-
-# Make sure exercises are in the path (Colab path is handled by the setup cell above)
-# FILTERS: ~colab
-chapter = "chapter2_rl"
-section = "part6_goalmisgen"
-root_dir = next((p for p in Path.cwd().parents if (p / chapter).exists()), Path.cwd())
-exercises_dir = root_dir / chapter / "exercises"
-section_dir = exercises_dir / section
-if str(exercises_dir) not in sys.path:
-    sys.path.append(str(exercises_dir))
-# END FILTERS
+from tqdm.auto import tqdm
 
 import part6_goalmisgen.tests as tests
 from part6_goalmisgen.agent import ActorCriticNetwork
 from part6_goalmisgen.evaluation import RewardFunction, compute_return, evaluate_behaviour
 from part6_goalmisgen.potteryshop import Action, Environment, Item, State, collect_rollout
 from part6_goalmisgen.ppo import ppo_train_step, ppo_train_step_multienv
-from part6_goalmisgen.util import (
-    LiveSubplots,
-    display_envs,
-    display_rollout,
-    display_rollouts,
-)
+from part6_goalmisgen.util import LivePlot, display_envs, display_rollout, display_rollouts
 
 device = t.device("cuda" if t.cuda.is_available() else "mps" if t.backends.mps.is_available() else "cpu")
 
@@ -488,7 +470,8 @@ Next, let's apply a reinforcement learning algorithm to see what behaviours the 
 The provided module `part6_goalmisgen/ppo.py` implements a function `ppo_train_step` that collects some rollouts and trains an agent network on these using a reinforcement learning algorithm — a simplified form of the proximal policy optimisation algorithm you implemented in [2.3] (GAE advantages, the clipped-surrogate objective, several epochs of minibatch updates per batch of rollouts, and rollouts collected by a compiled CUDA-graph step when a GPU is available). All of its hyperparameters have sensible defaults tuned for today's environments, so the training loops below only pass the network, environment, reward function and optimiser. You're welcome to read it, but you don't need to: today it's just infrastructure.
 </details>
 
-Here is a function that wraps `ppo_train_step` into a training loop, with a live plot of the mean return per training step:
+Here is a function that wraps `ppo_train_step` into a training loop, with a live plot
+for various stats like loss and average return while the agent is training.
 '''
 
 # ! CELL TYPE: code
@@ -500,7 +483,6 @@ def train_agent(
     net: ActorCriticNetwork,
     reward_fn: RewardFunction,
     num_train_steps: int = 128,
-    num_train_steps_per_vis: int = 4,
     seed: int = 42,
 ) -> ActorCriticNetwork:
     generator = t.Generator().manual_seed(seed)
@@ -508,19 +490,24 @@ def train_agent(
     env = env.to(device)
     optimiser = t.optim.Adam(net.parameters(), lr=0.003)
 
-    liveplot = LiveSubplots(["return"], num_train_steps)
-    for step in tqdm(range(num_train_steps)):
-        metrics = ppo_train_step(
-            net=net,
-            env=env,
-            reward_fn=reward_fn,
-            optimiser=optimiser,
-            discount_rate=DISCOUNT_RATE,
-            generator=generator,
-        )
-        liveplot.log(step, {"return": metrics["return"]})
-        if (step + 1) % num_train_steps_per_vis == 0:
-            liveplot.refresh()
+    panels = [
+        {"title": "losses", "metrics": ["loss", "actor", "critic"]},
+        {"title": "return / entropy", "metrics": ["return"], "secondary": ["entropy"]},
+    ]
+    # `with` draws the final frame and stops the renderer on exit, including on an interrupt
+    with LivePlot(panels, num_train_steps) as liveplot:
+        pbar = tqdm(range(num_train_steps))
+        for step in pbar:
+            metrics = ppo_train_step(
+                net=net,
+                env=env,
+                reward_fn=reward_fn,
+                optimiser=optimiser,
+                discount_rate=DISCOUNT_RATE,
+                generator=generator,
+            )
+            liveplot.log(step, metrics)
+            pbar.set_postfix(metrics)
 
     return net
 
@@ -880,8 +867,10 @@ def plot_return_hists(reward_fns, return_vecs, bins: int = 40, title: str | None
         "reward_bin": "shards binned",
         "proxy": "corner-drops (proxy goal)",
     }
-    fig, axes = plt.subplots(len(reward_fns), figsize=(5, 3 * len(reward_fns)))
-    for reward_fn, returns, ax in zip(reward_fns, return_vecs, np.atleast_1d(axes)):
+    # one small panel per probe, side by side (at most three probes are ever passed)
+    n = len(reward_fns)
+    fig, axes = plt.subplots(1, n, figsize=(3.6 * n, 2.8), squeeze=False)
+    for i, (reward_fn, returns, ax) in enumerate(zip(reward_fns, return_vecs, axes[0])):
         data = returns.cpu().numpy()
         data = data[np.isfinite(data)]
         lo, hi = (float(data.min()), float(data.max())) if data.size else (0.0, 1.0)
@@ -890,13 +879,15 @@ def plot_return_hists(reward_fns, return_vecs, bins: int = 40, title: str | None
         ax.hist(data, bins=bins, range=(lo, hi))
         name = reward_fn.__name__
         desc = probe_desc.get(name)
-        ax.set_title(f"histogram of {name} returns" + (f" — {desc}" if desc else ""))
-        ax.set_xlabel("discounted return per rollout")
-        ax.set_ylabel("# rollouts")
+        ax.set_title(f"{name} returns" + (f"\n{desc}" if desc else ""), fontsize=10)
+        ax.set_xlabel("discounted return per rollout", fontsize=9)
+        if i == 0:
+            ax.set_ylabel("# rollouts", fontsize=9)
+        ax.tick_params(labelsize=8)
     if title is not None:
-        fig.suptitle(title, fontweight="bold")
+        fig.suptitle(title, fontweight="bold", fontsize=11)
     fig.tight_layout()
-    fig.show()
+    plt.show()
 
 # ! CELL TYPE: code
 # ! FILTERS: []
@@ -1727,27 +1718,31 @@ def train_agent_multienv(
     net: ActorCriticNetwork,
     reward_fn: RewardFunction,
     num_train_steps: int = 192,
-    num_train_steps_per_vis: int = 8,
     seed: int = 42,
 ) -> ActorCriticNetwork:
     generator = t.Generator().manual_seed(seed)
     net = net.to(device)
     optimiser = t.optim.Adam(net.parameters(), lr=0.003)
 
-    liveplot = LiveSubplots(["return"], num_train_steps)
-    for step in tqdm(range(num_train_steps)):
-        envs = gen(num_envs=512, generator=generator).to(device)
-        metrics = ppo_train_step_multienv(
-            net=net,
-            envs=envs,
-            reward_fn=reward_fn,
-            optimiser=optimiser,
-            discount_rate=DISCOUNT_RATE,
-            generator=generator,
-        )
-        liveplot.log(step, {"return": metrics["return"]})
-        if (step + 1) % num_train_steps_per_vis == 0:
-            liveplot.refresh()
+    panels = [
+        {"title": "losses", "metrics": ["loss", "actor", "critic"]},
+        {"title": "return / entropy", "metrics": ["return"], "secondary": ["entropy"]},
+    ]
+    # `with` draws the final frame and stops the renderer on exit, including on an interrupt
+    with LivePlot(panels, num_train_steps) as liveplot:
+        pbar = tqdm(range(num_train_steps))
+        for step in pbar:
+            envs = gen(num_envs=512, generator=generator).to(device)
+            metrics = ppo_train_step_multienv(
+                net=net,
+                envs=envs,
+                reward_fn=reward_fn,
+                optimiser=optimiser,
+                discount_rate=DISCOUNT_RATE,
+                generator=generator,
+            )
+            liveplot.log(step, metrics)
+            pbar.set_postfix(metrics)
 
     return net
 
@@ -1788,7 +1783,6 @@ net3 = train_agent_multienv(
     net=net3,
     reward_fn=reward2,
     num_train_steps=160,
-    num_train_steps_per_vis=8,
     seed=1,
 )
 
@@ -2211,7 +2205,6 @@ net4 = train_agent_multienv(
     net=net4,
     reward_fn=reward2,
     num_train_steps=192,
-    num_train_steps_per_vis=8,
     seed=1,
 )
 

@@ -213,16 +213,18 @@ class Environment:
         items_map = state.items_map.clone()
         inventory = state.inventory
 
+        # (tensor-vs-enum tests below use torch.eq rather than ==: under torch.compile
+        # (dynamo, torch >= 2.13) `tensor == IntEnum` is mis-traced as a constant False)
         # collide with items
         on_item = items_map[batch, rows, cols]
         items_map[batch, rows, cols] = torch.where(
-            on_item == Item.URN,
+            torch.eq(on_item, Item.URN),
             torch.full_like(on_item, Item.SHARDS),
             on_item,
         )
 
         # pick up item
-        do_pickup = (action == Action.PICKUP) & (inventory == Item.EMPTY)
+        do_pickup = torch.eq(action, Action.PICKUP) & torch.eq(inventory, Item.EMPTY)
         on_item = items_map[batch, rows, cols]
         inventory = torch.where(do_pickup, on_item, inventory)
         items_map[batch, rows, cols] = torch.where(
@@ -233,7 +235,7 @@ class Environment:
 
         # put down item
         on_item = items_map[batch, rows, cols]
-        do_putdown = (action == Action.PUTDOWN) & (on_item == Item.EMPTY)
+        do_putdown = torch.eq(action, Action.PUTDOWN) & torch.eq(on_item, Item.EMPTY)
         items_map[batch, rows, cols] = torch.where(do_putdown, inventory, on_item)
         inventory = torch.where(
             do_putdown,
@@ -265,13 +267,13 @@ class Environment:
         grid = torch.zeros((B, ws, ws, 4), dtype=torch.bool, device=device)
         grid[batch, state.robot_pos[:, 0], state.robot_pos[:, 1], 0] = True
         grid[batch, state.bin_pos[:, 0], state.bin_pos[:, 1], 1] = True
-        grid[:, :, :, 2] = state.items_map == Item.SHARDS
-        grid[:, :, :, 3] = state.items_map == Item.URN
+        grid[:, :, :, 2] = torch.eq(state.items_map, Item.SHARDS)
+        grid[:, :, :, 3] = torch.eq(state.items_map, Item.URN)
         # feature data (inventory status)
         vec = torch.stack(
             (
-                state.inventory == Item.SHARDS,
-                state.inventory == Item.URN,
+                torch.eq(state.inventory, Item.SHARDS),
+                torch.eq(state.inventory, Item.URN),
             ),
             dim=-1,
         )

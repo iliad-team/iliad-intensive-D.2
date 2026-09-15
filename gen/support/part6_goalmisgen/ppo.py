@@ -243,10 +243,17 @@ def _ppo_train_step(
             for k, v in aux.items():
                 aux_sums[k] = aux_sums.get(k, 0.0) + v
             num_updates += 1
-    # metrics (averaged over the updates)
+    # metrics (averaged over the updates). Short keys, return first, so the dict
+    # can go straight onto a tqdm progress bar (`pbar.set_postfix(metrics)`) and
+    # into the live plot:
+    #   return   mean discounted return of the collected rollouts
+    #   loss     total PPO loss;  actor / critic  its two components
+    #   entropy  mean policy entropy
+    #   kl       approximate KL between the updated policy and the one that collected the rollouts
+    #   clip     fraction of probability ratios that hit the PPO clip
     train_metrics = {
-        "loss": loss_sum / num_updates,
         "return": compute_return(rewards, discount_rate).mean().item(),
+        "loss": loss_sum / num_updates,
         **{k: v / num_updates for k, v in aux_sums.items()},
     }
     return train_metrics
@@ -404,12 +411,11 @@ def ppo_loss_fn(
     )
     average_entropy = per_step_entropy.mean()
 
-    # diagnostics
+    # diagnostics: approximate KL(new || rollout policy) (the low-variance "k3"
+    # estimator) and the fraction of probability ratios the clipping engaged on
     with torch.no_grad():
-        actor_clipfrac = (action_prob_ratios_clipped != action_prob_ratios).float().mean()
-        actor_approxkl1 = (-action_log_ratios).mean()
-        actor_approxkl3 = ((action_prob_ratios - 1) - action_log_ratios).mean()
-        critic_clipfrac = (value_diffs != value_diffs_clipped).float().mean()
+        approx_kl = ((action_prob_ratios - 1) - action_log_ratios).mean()
+        clip_frac = (action_prob_ratios_clipped != action_prob_ratios).float().mean()
 
     # total loss
     total_loss = (
@@ -418,13 +424,11 @@ def ppo_loss_fn(
     return (
         total_loss,
         {
-            "loss-actor": actor_loss.item(),
-            "loss-critic": critic_loss.item(),
+            "actor": actor_loss.item(),
+            "critic": critic_loss.item(),
             "entropy": average_entropy.item(),
-            "actor-clip": actor_clipfrac.item(),
-            "critic-clip": critic_clipfrac.item(),
-            "actor-kl1": actor_approxkl1.item(),
-            "actor-kl3": actor_approxkl3.item(),
+            "kl": approx_kl.item(),
+            "clip": clip_frac.item(),
         },
     )
 
