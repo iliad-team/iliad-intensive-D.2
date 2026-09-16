@@ -665,7 +665,7 @@ class MasterFileData:
         colab_lines = [
             f"> **Colab: [exercises]({exercises_link}) | [solutions]({solutions_link})**",
             "",
-            "Part of the [ILIAD Intensive](https://davidquarel.github.io/iliad2-aixi/) course material. "
+            "Part of the [ILIAD Intensive](https://iliad-team.github.io/iliad-intensive-D.2/) course material. "
             "Run the setup cell first; it installs dependencies and fetches the support modules.",
         ]
         streamlit_lines = list(colab_lines)

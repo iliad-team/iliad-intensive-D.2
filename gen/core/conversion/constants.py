@@ -39,7 +39,7 @@ CHAPTER_NUMBER_CHARACTERS = ["0️⃣", "1️⃣", "2️⃣", "3️⃣", "4️�
 
 # GitHub configuration
 # ILIAD course: notebooks are generated downstream and force-pushed to the `notebooks`
-# branch of davidquarel/iliad2-aixi, where Colab opens them. Flat per-part layout:
+# branch of iliad-team/iliad-intensive-D.2, where Colab opens them. Flat per-part layout:
 #   .../blob/notebooks/<exercise_dir>/<name>_{exercises,solutions}.ipynb
 BRANCH = "notebooks"
-ARENA_ROOT = f"https://colab.research.google.com/github/davidquarel/iliad2-aixi/blob/{BRANCH}/"
+ARENA_ROOT = f"https://colab.research.google.com/github/iliad-team/iliad-intensive-D.2/blob/{BRANCH}/"

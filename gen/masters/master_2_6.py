@@ -160,7 +160,7 @@ ipython.run_line_magic("autoreload", "2")
 
 # if "google.colab" in sys.modules:
 #     %pip install -q torch numpy einops "plotly>=5" ipywidgets matplotlib jaxtyping pillow
-#     !git clone --depth 1 -b notebooks --filter=blob:none --sparse https://github.com/davidquarel/iliad2-aixi /content/iliad
+#     !git clone --depth 1 -b notebooks --filter=blob:none --sparse https://github.com/iliad-team/iliad-intensive-D.2 /content/iliad
 #     !cd /content/iliad && git sparse-checkout set part6_goalmisgen
 #     if "/content/iliad" not in sys.path:
 #         sys.path.insert(0, "/content/iliad")  # so `import part6_goalmisgen...` resolves
@@ -312,7 +312,7 @@ So much for defining the data types involved, the actual implementation of the e
 
 We encourage you to skim the implementation in `part6_goalmisgen/potteryshop.py` --- the environment dynamics are about 60 lines of (heavily commented) tensor operations, and reading them is a good way to make sure you understand exactly how the world works before you start designing reward functions for it.
 
-You can **[play the pottery shop in your browser](https://davidquarel.github.io/iliad2-aixi/play.html)** to get a feel for the dynamics (move the robot around, smash urns, pick up shards and bin them) before you start designing reward functions for it.
+You can **[play the pottery shop in your browser](https://iliad-team.github.io/iliad-intensive-D.2/play.html)** to get a feel for the dynamics (move the robot around, smash urns, pick up shards and bin them) before you start designing reward functions for it.
 
 Below we instantiate an instance of the pottery shop environment.
 We can see the `Environment` object requires the following arguments:

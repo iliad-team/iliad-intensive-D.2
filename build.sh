@@ -32,8 +32,8 @@
 
 set -uo pipefail
 
-DEFAULT_WORKSHEETS=(solomonoff-worksheet.tex aixi-worksheet.tex)
-DEFAULT_SLIDES=(si_and_aixi_slides.tex vpg-slides.tex goalmisgen-slides.tex)
+DEFAULT_WORKSHEETS=()   # no worksheets in this repo; the D.3 sheets moved out
+DEFAULT_SLIDES=(vpg-slides.tex goalmisgen-slides.tex)
 
 # 1 when a single source was named on the command line (errors are printed
 # inline for quick debugging); 0 for a full default build (errors go to the
