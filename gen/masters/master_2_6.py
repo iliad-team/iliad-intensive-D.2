@@ -547,7 +547,7 @@ net1 = train_agent(
     env=env,
     net=net1,
     reward_fn=reward1,
-    num_train_steps=96,
+    num_train_steps=60,
 )
 
 # ! CELL TYPE: markdown
