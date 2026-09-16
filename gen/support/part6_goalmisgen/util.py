@@ -10,18 +10,16 @@ require a notebook frontend (Jupyter, VS Code, or Colab).
 from __future__ import annotations
 
 import io
-import math
 
 import einops
 import ipywidgets as widgets
 import numpy as np
-import plotly.graph_objects
-import plotly.subplots
 import torch
 from IPython.display import display
 from PIL import Image
 
 from part6_goalmisgen import potteryshop
+from part6_goalmisgen.liveplot import LivePlot  # re-exported: live training curves
 
 
 def animate_rollouts(
@@ -269,69 +267,3 @@ class InteractivePlayer:
 
     def _ipython_display_(self):
         display(self.ui)
-
-
-class LiveSubplots:
-    def __init__(
-        self,
-        metric_names: list,
-        total_steps: int,
-        num_cols: int = 3,
-    ):
-        # State tracking
-        self.data = {name: (i, [], []) for i, name in enumerate(metric_names)}
-
-        # Headless fallback: the live plot uses a plotly FigureWidget, which
-        # needs a notebook frontend (ipywidgets/anywidget). When that isn't
-        # available (e.g. running the generated solutions.py as a plain script),
-        # degrade gracefully to collecting metrics with no live display.
-        try:
-            self._build_figure(metric_names, total_steps, num_cols)
-            self.headless = False
-            display(self.fig)
-        except Exception:
-            self.fig = None
-            self.headless = True
-
-    def _build_figure(self, metric_names, total_steps, num_cols):
-        # Create plot
-        num_rows = math.ceil(len(metric_names) / num_cols)
-        num_cols = min(num_cols, len(metric_names))
-        fig = plotly.subplots.make_subplots(
-            rows=num_rows,
-            cols=num_cols,
-            subplot_titles=metric_names,
-            vertical_spacing=0.06,
-            horizontal_spacing=0.03,
-        )
-        fig.update_layout(
-            height=350 * num_rows,
-            showlegend=False,
-            margin=dict(t=20, b=20, l=10, r=10),
-        )
-        fig.update_xaxes(range=[0, total_steps])
-        for i, metric in enumerate(metric_names):
-            fig.add_trace(
-                plotly.graph_objects.Scatter(
-                    name=metric,
-                    x=[],
-                    y=[],
-                    line=dict(width=1, color="#636EFA"),
-                ),
-                row=1 + (i // num_cols),
-                col=1 + (i % num_cols),
-            )
-        self.fig = plotly.graph_objects.FigureWidget(fig)
-
-    def log(self, t: int, logs: dict):
-        for name, value in logs.items():
-            self.data[name][1].append(t)
-            self.data[name][2].append(value)
-
-    def refresh(self):
-        if self.fig is None:
-            return
-        with self.fig.batch_update():
-            for name, (i, xs, ys) in self.data.items():
-                self.fig.data[i].x = xs
-                self.fig.data[i].y = ys
