@@ -23,6 +23,8 @@ Construct the optimiser as a plain `torch.optim.Adam`.
 
 from __future__ import annotations
 
+import warnings
+
 import torch
 import torch.nn.functional as F
 from jaxtyping import Float
@@ -273,9 +275,25 @@ def _ppo_train_step(
 #
 # Anything unusual (CPU device, missing triton, an old torch) makes us fall
 # back to the plain `collect_annotated_rollout`, so this is purely a speed-up.
+# The fallback is never silent: each distinct reason raises a `RuntimeWarning`
+# once, so a training run that is unexpectedly slow says why in its output.
 
 _COMPILED_STEPS: dict = {}
 _COMPILE_DISABLED = False
+_FALLBACK_WARNED: set[str] = set()
+
+
+def _warn_fallback(reason: str) -> None:
+    """Warn (once per distinct reason) that rollouts are using the slow eager path."""
+    if reason in _FALLBACK_WARNED:
+        return
+    _FALLBACK_WARNED.add(reason)
+    warnings.warn(
+        f"[ppo] compiled (CUDA-graph) rollouts unavailable: {reason}. "
+        "Falling back to the eager `collect_annotated_rollout`, which is several times slower.",
+        RuntimeWarning,
+        stacklevel=4,  # past this helper, the fast collector and its @torch.no_grad wrapper
+    )
 
 
 def _get_compiled_step(env: Environment, net: ActorCriticNetwork, batch_size: int):
@@ -312,7 +330,10 @@ def collect_annotated_rollout_fast(
     back to the eager implementation on CPU or if compilation fails.
     """
     global _COMPILE_DISABLED
-    if _COMPILE_DISABLED or env.device.type != "cuda":
+    if _COMPILE_DISABLED:  # a previous attempt failed; already warned then
+        return collect_annotated_rollout(env, net.policy_value, num_steps, num_rollouts, generator)
+    if env.device.type != "cuda":
+        _warn_fallback(f"environment is on device '{env.device}', not CUDA")
         return collect_annotated_rollout(env, net.policy_value, num_steps, num_rollouts, generator)
     try:
         state = env.reset(num_rollouts)
@@ -344,7 +365,7 @@ def collect_annotated_rollout_fast(
         _, final_value_pred = net.policy_value(final_obs)
     except Exception as e:  # noqa: BLE001 - any compile/runtime problem => eager path from now on
         _COMPILE_DISABLED = True
-        print(f"[ppo] compiled rollouts unavailable ({type(e).__name__}: {str(e)[:80]}); using eager rollouts")
+        _warn_fallback(f"{type(e).__name__}: {e}")
         return collect_annotated_rollout(env, net.policy_value, num_steps, num_rollouts, generator)
     stacked = tree_map(lambda *xs: torch.stack(xs, dim=1), transitions[0], *transitions[1:])
     return AnnotatedRollout(transitions=stacked, final_obs=final_obs, final_value_pred=final_value_pred)
