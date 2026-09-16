@@ -1,24 +1,7 @@
-# LaTeX output and intermediates (PDFs are built by CI onto the `build` branch)
-*.pdf
-*.aux
-*.bbl
-*.blg
-*.log
-*.nav
-*.out
-*.snm
-*.toc
-*.vrb
-*.synctex.gz
-*.fdb_latexmk
-*.fls
-*-present.tex
-*-handout.tex
-
 # Notebook generator output (CI pushes it to the `build` branch)
 build/
-gen/masters/*.ipynb
 publish/
+gen/masters/*.ipynb
 __pycache__/
 *.pyc
 

@@ -1,18 +1,13 @@
 # iliad-intensive-D.2
 
-Source for **D.2 Policy Gradients & Misgeneralization** of the Iliad Intensive:
-two beamer decks and the goal-misgeneralisation Colab notebook.
+Source for the goal-misgeneralisation Colab notebook of **D.2 Policy Gradients &
+Misgeneralization** (Iliad Intensive). The worksheet page and both lecture decks
+live in the website repo: https://iliad-intensive.org/agency/policy-gradients-misgeneralization/
 
-Every push to `main` builds everything and force-pushes the result to the
+Every push to `main` regenerates the notebook and force-pushes it, with its
+support modules, to the
 [`build`](https://github.com/iliad-team/iliad-intensive-D.2/tree/build) branch.
 Nothing built is committed here.
-
-## Slides
-
-| Deck | Present | Handout |
-| --- | --- | --- |
-| Vanilla Policy Gradient | [pdf](https://github.com/iliad-team/iliad-intensive-D.2/blob/build/slides/vpg-slides-present.pdf) | [pdf](https://github.com/iliad-team/iliad-intensive-D.2/blob/build/slides/vpg-slides-handout.pdf) |
-| Goal Misgeneralisation & Specification Gaming | [pdf](https://github.com/iliad-team/iliad-intensive-D.2/blob/build/slides/goalmisgen-slides-present.pdf) | [pdf](https://github.com/iliad-team/iliad-intensive-D.2/blob/build/slides/goalmisgen-slides-handout.pdf) |
 
 ## Exercises
 
@@ -25,7 +20,6 @@ Nothing built is committed here.
 ## Local build
 
 ```bash
-./build.sh                                   # both decks -> *-present.pdf, *-handout.pdf
 pip install -r gen/requirements-gen.txt      # once
-python gen/core/main.py --chapters='2.*'     # notebook -> build/exercises/part6_goalmisgen/
+python gen/core/main.py --chapters='2.*'     # -> build/exercises/part6_goalmisgen/
 ```
