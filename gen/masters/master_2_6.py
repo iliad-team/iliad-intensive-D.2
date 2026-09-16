@@ -154,13 +154,13 @@ ipython.run_line_magic("autoreload", "2")
 # ! TAGS: [master-comment]
 
 # # ILIAD Intensive setup. On Colab: install deps and pull this notebook's support
-# # modules (part6_goalmisgen/*) from the auto-built `notebooks` branch.
+# # modules (part6_goalmisgen/*) from the auto-built `build` branch.
 # import os
 # import sys
 
 # if "google.colab" in sys.modules:
 #     %pip install -q torch numpy einops "plotly>=5" ipywidgets matplotlib jaxtyping pillow
-#     !git clone --depth 1 -b notebooks --filter=blob:none --sparse https://github.com/iliad-team/iliad-intensive-D.2 /content/iliad
+#     !git clone --depth 1 -b build --filter=blob:none --sparse https://github.com/iliad-team/iliad-intensive-D.2 /content/iliad
 #     !cd /content/iliad && git sparse-checkout set part6_goalmisgen
 #     if "/content/iliad" not in sys.path:
 #         sys.path.insert(0, "/content/iliad")  # so `import part6_goalmisgen...` resolves

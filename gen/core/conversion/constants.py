@@ -38,8 +38,8 @@ TYPES_TO_VALID_TAGS = {
 CHAPTER_NUMBER_CHARACTERS = ["0️⃣", "1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟", "☆"]
 
 # GitHub configuration
-# ILIAD course: notebooks are generated downstream and force-pushed to the `notebooks`
+# ILIAD course: notebooks are generated downstream and force-pushed to the `build`
 # branch of iliad-team/iliad-intensive-D.2, where Colab opens them. Flat per-part layout:
-#   .../blob/notebooks/<exercise_dir>/<name>_{exercises,solutions}.ipynb
-BRANCH = "notebooks"
+#   .../blob/build/<exercise_dir>/<name>_{exercises,solutions}.ipynb
+BRANCH = "build"
 ARENA_ROOT = f"https://colab.research.google.com/github/iliad-team/iliad-intensive-D.2/blob/{BRANCH}/"

@@ -1,42 +1,31 @@
-# iliad2-aixi
+# iliad-intensive-D.2
 
-Worksheets, slides, and interactive Colab notebooks for the **Iliad Intensive**
-(London Initiative for Safe AI), April 2026 — covering Policy Gradients &
-Misgeneralization (D.2) and Solomonoff Induction & AIXI (D.3).
+Source for **D.2 Policy Gradients & Misgeneralization** of the Iliad Intensive:
+two beamer decks and the goal-misgeneralisation Colab notebook.
 
-## Built PDFs
+Every push to `main` builds everything and force-pushes the result to the
+[`build`](https://github.com/iliad-team/iliad-intensive-D.2/tree/build) branch.
+Nothing built is committed here.
 
-Every push to `main` rebuilds all PDFs and publishes them to a one-page site:
+## Slides
 
-**https://davidquarel.github.io/iliad2-aixi/**
+| Deck | Present | Handout |
+| --- | --- | --- |
+| Vanilla Policy Gradient | [pdf](https://github.com/iliad-team/iliad-intensive-D.2/blob/build/slides/vpg-slides-present.pdf) | [pdf](https://github.com/iliad-team/iliad-intensive-D.2/blob/build/slides/vpg-slides-handout.pdf) |
+| Goal Misgeneralisation & Specification Gaming | [pdf](https://github.com/iliad-team/iliad-intensive-D.2/blob/build/slides/goalmisgen-slides-present.pdf) | [pdf](https://github.com/iliad-team/iliad-intensive-D.2/blob/build/slides/goalmisgen-slides-handout.pdf) |
 
-The site links to each worksheet with and without solutions, and the slides in
-both presentation (with `\pause` reveals) and handout (collapsed) form. No PDFs
-are committed — they live in GitHub's Pages storage and are replaced on each
-push. CI lives in `.github/workflows/build.yml`.
+## Exercises
+
+- **Vanilla Policy Gradient**: on the [ARENA site](https://learn.arena.education/chapter2_rl/22_vpg/).
+- **Goal Misgeneralisation & Specification Gaming**:
+  [exercises](https://colab.research.google.com/github/iliad-team/iliad-intensive-D.2/blob/build/part6_goalmisgen/2.6_Specification_Gaming_and_Goal_Misgeneralisation_exercises.ipynb)
+  · [solutions](https://colab.research.google.com/github/iliad-team/iliad-intensive-D.2/blob/build/part6_goalmisgen/2.6_Specification_Gaming_and_Goal_Misgeneralisation_solutions.ipynb)
+  (Colab). Source: `gen/masters/master_2_6.py` + `gen/support/part6_goalmisgen/`.
 
 ## Local build
 
-**Slides** — any deck (`si_and_aixi_slides`, `vpg-slides`, `goalmisgen-slides`):
-
 ```bash
-pdflatex goalmisgen-slides.tex                       # presentation (\pause reveals on)
-pdflatex "\def\HANDOUT{}\input{goalmisgen-slides}"   # handout (reveals collapsed)
+./build.sh                                   # both decks -> *-present.pdf, *-handout.pdf
+pip install -r gen/requirements-gen.txt      # once
+python gen/core/main.py --chapters='2.*'     # notebook -> build/exercises/part6_goalmisgen/
 ```
-
-Decks that cite (`si_and_aixi_slides`, `goalmisgen-slides`) need a `bibtex <deck>` pass
-between two `pdflatex` runs; `vpg-slides` has no citations.
-
-**Worksheets** — `solomonoff-worksheet`, `aixi-worksheet`: same `pdflatex` (run twice for cleveref).
-Toggle solutions with the `\solutionstrue` / `\solutionsfalse` line near the top of the `.tex`.
-
-**Notebooks** — regenerate the Colab notebooks from their `gen/masters/master_*.py` sources:
-
-```bash
-pip install -r gen/requirements-gen.txt        # once
-python gen/core/main.py --chapters='2.*'       # 2.2 + 2.6 -> build/exercises/<part>/*.ipynb (gitignored)
-```
-
-CI publishes the generated notebooks to the `notebooks` branch, where Colab opens them. To run
-one end-to-end locally, execute it with `jupyter nbconvert --execute` and the support dir on
-`PYTHONPATH` (see `.github/workflows/build.yml`).

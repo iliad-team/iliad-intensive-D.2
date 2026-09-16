@@ -657,7 +657,7 @@ class MasterFileData:
         return names
 
     def get_page_links(self) -> tuple[list[str], list[str]]:
-        # ILIAD course: flat per-part layout on the `notebooks` branch (no chapter/exercises
+        # ILIAD course: flat per-part layout on the `build` branch (no chapter/exercises
         # nesting, no Streamlit app, no `?t=` timestamp so regeneration is idempotent).
         solutions_link = f"{ARENA_ROOT}{self.exercise_dir_name}/{self.colab_name}_solutions.ipynb"
         exercises_link = f"{ARENA_ROOT}{self.exercise_dir_name}/{self.colab_name}_exercises.ipynb"
